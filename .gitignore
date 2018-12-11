@@ -1,0 +1,8 @@
+*.txt
+*.dat
+*.npz
+*.log
+*.obj
+*.sasparams
+*.pyc
+*~
