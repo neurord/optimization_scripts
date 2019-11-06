@@ -4,11 +4,12 @@ from ajustador import drawing
 import gpedata_experimental as gpe
 import os
 #must be in current working directory for this import to work, else use exec
-import params_fitness_chan,fit_commands
+import params_fitness as pfc
+import fit_commands
 
 ########### Optimization of GP neurons ##############3
 modeltype='gp'
-rootdir='/home/avrama/moose/gp_opt/'
+rootdir='/home/avrama/moose/opt_scripts/gp_opt/'
 #use 1 and 3 for testing, 200 and 8 for optimization
 generations=100
 popsiz=8
@@ -22,16 +23,18 @@ morph_file='GP1_41comp.p'
 dataname='proto079'
 exp_to_fit = gpe.data[dataname+'-2s'][[0,2,4]]
 
-dirname='chan_'+dataname+str(seed)
+dirname='cond_'+dataname+str(seed)
 if not dirname in os.listdir(rootdir):
     os.mkdir(rootdir+dirname)
 os.chdir(rootdir+dirname)
 
 ######## set up parameters and fitness to be used for all opts  ############
-params1,fitness=params_fitness_chan.params_fitness(morph_file,ntype,modeltype)
+params1,fitness=pfc.params_fitness(morph_file,ntype,modeltype)
 
 # set-up and do the optimization 
-fit1,mean_dict1,std_dict1,CV1=fit_commands.fit_commands(dirname,exp_to_fit,modeltype,ntype,fitness,params1,generations,popsiz, seed, test_size)
+fit1=fit_commands.fit_commands(dirname,exp_to_fit,modeltype,ntype,fitness,params1,generations,popsiz, seed, test_size)
+if test_size>0:
+    mean_dict,std_dict,CV=converge.iterate_fit(fit1,test_size,popsiz,std_crit=0.02,max_evals=12000)
 
 ###########look at results
 drawing.plot_history(fit1, fit1.measurement)
