@@ -43,8 +43,8 @@ def params_fitness(morph_file,ntype,modeltype):
         P('Cond_BKCa_2', 0, fixed=1),
         P('Chan_HCN1_taumul', 1.0, min=0.5, max=2),
         P('Chan_HCN2_taumul', 1.0, min=0.5, max=2),
-        P('Chan_HCN1_vshift', 0.0, min=-0.01, max=0.01),
-        P('Chan_HCN2_vshift', 0.0, min=-0.01, max=0.01),
+        P('Chan_HCN1_vshift', 0.0, min=-0.02, max=0.02),
+        P('Chan_HCN2_vshift', 0.0, min=-0.02, max=0.02),
         P('Chan_NaF_vshift', 0.0, min=-0.01, max=0.01),
         P('Chan_NaF_taumul', 1.0, min=0.5, max=2),
         P('Chan_NaS_vshift', 0.0, min=-0.01, max=0.01),
@@ -60,18 +60,20 @@ def params_fitness(morph_file,ntype,modeltype):
         P('model',           modeltype,     fixed=1))
 
     fitness = aju.fitnesses.combined_fitness('empty',
-                                             response=1,
+                                             response=2,
                                              baseline_pre=1,
                                              baseline_post=1,
                                              rectification=2,
                                              falling_curve_time=1,
                                              spike_time=1,
                                              spike_width=1,
-                                             spike_height=1,
+                                             spike_height=3,
                                              spike_latency=0,
-                                             spike_count=1,
+                                             mean_isi=2,
+                                             isi_spread=2,
+                                             spike_count=2,
                                              spike_ahp=1,
-                                             ahp_curve=1,
+                                             ahp_curve=2,
                                              spike_range_y_histogram=1)
 
     return params,fitness
