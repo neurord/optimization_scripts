@@ -21,24 +21,24 @@ if __name__ == '__main__':
             from ajustador.helpers import save_params,converge
             import gpedata_experimental as gpe
             import os
-            import fit_commands
-            import params_fitness_chan as pf
+            import fit_commands as fc
+            import params_fitness_chan0 as pf
 
             ########### Optimization of GP neurons ##############3
             modeltype='gp'
             rootdir=os.getcwd()+'/output/'
             #use 1 and 3 for testing, 200 and 8 for optimization
-            generations=1#300
-            popsiz=3
+            generations=300
+            popsiz=8
             seed=84362
             #after generations, do 25 more at a time and test for convergence
-            test_size=0#10#25
+            test_size=25
             
             ############## neuron /data specific specifications ###########
             ntype='Npas'
-            morph_file='GP1_41comp.p'
-            dataname='Npas2003'
-            exp_to_fit = gpe.data[dataname+'-2s'][[0,2,4]]
+            morph_file='GP_soma.p'
+            dataname='Npas2005'
+            exp_to_fit = gpe.alldata[dataname+'-2s'][[0,2,4]]
             savename=dataname+'_'+str(popsiz)+'_'+str(seed)
             dirname='cmaes_'+dataname+'_'+str(seed)+'_'+str(popsiz)
             if not dirname in os.listdir(rootdir):
@@ -48,16 +48,17 @@ if __name__ == '__main__':
             params1,fitness=pf.params_fitness(morph_file,ntype,modeltype)
 
             # set-up and do the optimization 
-            fit1,mean_dict1,std_dict1,CV1=fit_commands.fit_commands(dirname,exp_to_fit,modeltype,ntype,fitness,params1,generations,popsiz, seed, test_size, map_func = map_func)
+            fit1,mean_dict1,std_dict1,CV1=fc.fit_commands(dirname,exp_to_fit,modeltype,ntype,fitness,params1,generations,popsiz, seed, test_size, map_func = None)
 
             ###########look at results
+            #from ajustador import drawing
             #drawing.plot_history(fit1, fit1.measurement)
 
             #Save parameters of good results toward the end, and all fitness values
             startgood=0  #set to 0 to print/save all
             threshold=10  #set to high value to print/save all
             save_params.save_params(fit1, startgood, threshold)
-            save_params.persist(fit1,'.')
+            #save_params.persist(fit1,'.')
 
 
 '''
