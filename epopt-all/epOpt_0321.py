@@ -17,7 +17,7 @@ test_size=25
 ################## neuron /data specific specifications #############
 dataname='032117'
 ntype='ep'
-morph_file='EP_93comp.p'
+morph_file='EP_soma.p'
 exp_to_fit=epdata.waves[dataname][[0, 2, 5, 7]]
 
 dirname='pchan_'+dataname+'_'+str(seed)
