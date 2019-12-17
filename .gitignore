@@ -6,3 +6,4 @@
 *.sasparams
 *.pyc
 *~
+*/output/*

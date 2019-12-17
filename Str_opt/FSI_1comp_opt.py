@@ -21,24 +21,24 @@ if __name__ == '__main__':
             from ajustador.helpers import save_params,converge
             import os
             import A2Acre
-            import params_fitness_chan0 as pf
+            import params_fitness_fsi as pf
             import fit_commands as fc
 
             ########### Optimization of EP neurons ##############3
-            modeltype='FSI'
+            modeltype='fsi'
             rootdir=os.getcwd()+'/output/'
             #use 1 and 3 for testing, 200 and 8 for optimization
-            generations=1#300
-            popsiz=3
+            generations=300
+            popsiz=8
             seed=84362
             #after generations, do 25 more at a time and test for convergence
-            test_size=0#25
+            test_size=25
             
             ################## neuron /data specific specifications #############
             ntype='FSI'
-            morph_file='FSIcell-soma.p'
-            dataname=''
-            exp_to_fit=A2Acre.alldata[dataname][[1, 5, 12, 15, 19]]
+            morph_file='fs_morph.p'
+            dataname='FSI01Aug2014_SLH002'
+            exp_to_fit=A2Acre.alldata[dataname][[1, 5, 14, 17, 20]]
             ghkkluge=1
             savename=dataname+'_'+str(popsiz)+'_'+str(seed)
             dirname='cmaes_'+dataname+'_'+str(seed)+'_'+str(popsiz)
