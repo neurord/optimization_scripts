@@ -15,8 +15,4 @@ def fit_commands(dirname,exp_to_fit,modeltype,ntype,fitness,params,generations,p
 
     fit.load()
     fit.do_fit(generations, popsize=popsiz,seed=seed,sigma=2)
-    if test_size>0:
-        mean_dict,std_dict,CV=converge.iterate_fit(fit,test_size,popsiz,std_crit=0.01,slope_crit=1e-3,max_evals=100000)
-        return fit,mean_dict,std_dict,CV
-    else:
-        return fit,[],[],[]
+    return fit

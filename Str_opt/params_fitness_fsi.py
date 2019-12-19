@@ -5,10 +5,10 @@ def params_fitness(morph_file,ntype,modeltype,ghkkluge):
     P = aju.optimize.AjuParam
     params = aju.optimize.ParamSet(
         P('junction_potential', 0, fixed=1),
-        P('RM',                1.0,   min=0.01,      max=10),
-        P('CM',                 0.007, min=0.001,      max=0.03),
+        P('RM',                0.1,   min=0.01,      max=1),
+        P('CM',                 0.007, min=0.001,      max=0.02),
         P('Eleak', -0.08, min=-0.090, max=-0.030),
-        P('Cond_NaF_0',      1149,      min=0, max=60000),
+        P('Cond_NaF_0',      11490,      min=0, max=60000),
         P('Cond_Kv3132_0',      599,        min=0, max=3000),
         P('Cond_Ka_0',      887,        min=0, max=3000),
         P('Cond_Kv13_0',      1500,        min=0, max=6000),
@@ -31,8 +31,8 @@ def params_fitness(morph_file,ntype,modeltype,ghkkluge):
     #fitness=aju.fitnesses.combined_fitness('new_combined_fitness')
     fitness = aju.fitnesses.combined_fitness('empty',
                                              response=3,
-                                             baseline_pre=2,
-                                             baseline_post=2,
+                                             baseline_pre=1,
+                                             baseline_post=1,
                                              rectification=1,
                                              falling_curve_time=1,
                                              spike_time=3,

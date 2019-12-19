@@ -5,8 +5,7 @@ def params_fitness(morph_file,ntype,modeltype):
     P = aju.optimize.AjuParam
     params = aju.optimize.ParamSet(
         P('junction_potential', -0.012, min=-0.020, max=-0.005),
-        P('RA',                 2,     min=0.1, max=12),
-        P('RM',                 2,      min=0.1,  max=12),
+        P('RM',                 2,      min=0.01,  max=12),
         P('CM',                 0.014,   min=0.005, max=0.03),
         P('Eleak', -0.040, min=-0.070, max=-0.020),
         P('Cond_KDr_0', 40, min=0, max=1000),

@@ -5,8 +5,7 @@ def params_fitness(morph_file,ntype,modeltype,ghkkluge):
     P = aju.optimize.AjuParam
     params = aju.optimize.ParamSet(
         P('junction_potential', 0, fixed=1),
-        P('RA',                 5.3,  min=1,      max=200),
-        P('RM',                2.78,   min=0.1,      max=10),
+        P('RM',                2.78,   min=0.01,      max=10),
         P('CM',                 0.010, min=0.001,      max=0.03),
         P('Cond_Kir',      9.5,      min=0, max=20),
         P('Eleak', -0.08, min=-0.080, max=-0.030),

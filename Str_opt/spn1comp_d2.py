@@ -50,7 +50,9 @@ if __name__ == '__main__':
             params1,fitness=pf.params_fitness(morph_file,ntype,modeltype,ghkkluge)
 
             # set-up and do the optimization 
-            fit1,mean_dict1,std_dict1,CV1=fc.fit_commands(dirname,exp_to_fit,modeltype,ntype,fitness,params1,generations,popsiz, seed, test_size, map_func = None)
+            fit=fc.fit_commands(dirname,exp_to_fit,modeltype,ntype,fitness,params1,generations,popsiz, seed, test_size, map_func = None)
+            if test_size>0:
+                mean_dict,std_dict,CV=converge.iterate_fit(fit,test_size,popsiz,std_crit=0.01,slope_crit=1e-3,max_evals=100000)
 
             ###########look at results
             #from ajustador import drawing

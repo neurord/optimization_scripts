@@ -37,7 +37,7 @@ if __name__ == '__main__':
             ############## neuron /data specific specifications ###########
             ntype='arky'
             morph_file='GP_soma.p'
-            dataname='arky120'
+            dataname='arky138'
             exp_to_fit = gpe.alldata[dataname+'-2s'][[0,2,4]]
             savename=dataname+'_'+str(popsiz)+'_'+str(seed)
             dirname='cmaes_'+dataname+'_'+str(seed)+'_'+str(popsiz)
@@ -57,8 +57,23 @@ if __name__ == '__main__':
             startgood=0  #set to 0 to print/save all
             threshold=10  #set to high value to print/save all
             save_params.save_params(fit1, startgood, threshold)
-            #save_params.persist(fit1,'.')
 
+            #save_params.persist(fit1,'.')
+            dataname='arky140'
+            exp_to_fit = gpe.alldata[dataname+'-2s'][[0,2,4]]
+            savename=dataname+'_'+str(popsiz)+'_'+str(seed)
+            dirname='cmaes_'+dataname+'_'+str(seed)+'_'+str(popsiz)
+            if not dirname in os.listdir(rootdir):
+                os.mkdir(rootdir+dirname) #this form will make the rootdir/output direcotyr, but not the output/tmp directory
+            os.chdir(rootdir+dirname)
+            ######## set up parameters and fitness to be used for all opts ####
+            params2,fitness=pf.params_fitness(morph_file,ntype,modeltype)
+
+            # set-up and do the optimization 
+            fit2,mean_dict2,std_dict2,CV2=fc.fit_commands(dirname,exp_to_fit,modeltype,ntype,fitness,params2,generations,popsiz, seed, test_size, map_func = None)
+
+            save_params.save_params(fit2, startgood, threshold)
+            #save_params.persist(fit1,'.')
 
 '''
 To create zip file for NSG simulations:
