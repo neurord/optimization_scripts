@@ -4,23 +4,22 @@
 
 #import anal_util from ajustador/FrontNeuroinf
 import sys
-sys.path.insert(0, "/home/emily/mooseAssign/ajustador/FrontNeuroinf")
-import anal_util as au  
-
+import os
 import numpy as np
 import pandas as pd
 import glob
+import scipy
+import sklearn as sc
 #import the random forest classifier method
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import model_selection,metrics,tree
+import anal_util as au  
 from matplotlib import pyplot as plt
 import operator
 from matplotlib.colors import ListedColormap
 
 
-# plotting Graph Function
-
-def plotPredictions(max_feat, train_test, predict_dict, neurtypes, feature_order):
+def plotPredictions(max_feat, train_test, predict_dict, neurtypes, feature_order,epoch):
     ########## Graph the output using contour graph
     #inputdf contains the value of a subset of features used for classifier, i.e., two different columns from df
     feature_cols = [feat[0] for feat in feature_order]
@@ -31,25 +30,38 @@ def plotPredictions(max_feat, train_test, predict_dict, neurtypes, feature_order
     feature_axes=[(i,i+1) for i in range(0,max_feat,2)]
     for cols in feature_axes:
         plt.figure()
+        plt.title('Epoch '+str(epoch))
         for key,col in zip(train_test.keys(),edgecolors):
             predict=predict_dict[key]
             df=train_test[key][0]
             plot_predict=[neurtypes.index(p) for p in predict]
-            plt.scatter(df[feature_cols[cols[0]]], df[feature_cols[cols[1]]], c=plot_predict,
-                        cmap=ListedColormap(['r', 'b']),
-                        edgecolor=col, s=20)
+            plt.scatter(df[feature_cols[cols[0]]], df[feature_cols[cols[1]]], c=plot_predict,cmap=ListedColormap(['r', 'b']), edgecolor=col, s=20,label=key)
             plt.xlabel(feature_cols[cols[0]])
             plt.ylabel(feature_cols[cols[1]])
+            plt.legend()
 
 
-# running Random Classifier
+def plot_features(list_features,epochs,ylabel):
+    plt.ion()
+    objects=[name for name,weight in list_features]
+    y_pos = np.arange(len(list_features))
+    performance = [weight for name, weight in list_features]
+    f = plt.figure(figsize=(6,4))
 
-def runClusterAnalysis(param_values, labels, num_features, alldf):
+    plt.bar(y_pos, performance, align='center', alpha=0.5)
+    plt.xticks(y_pos, objects)
+    plt.xticks(rotation=90)
+    plt.ylabel(ylabel)
+    plt.xlabel('Feature')
+    plt.title(ylabel+' over '+epochs+' epochs')
 
-    ############ Now, data is ready for the cluster analysis ##################
+def runClusterAnalysis(param_values, labels, num_features, alldf,epoch,MAXPLOTS):
+
+    ############ data is ready for the cluster analysis ##################
     #select a random subset of data for training, and use the other part for testing
     #sklearn.model_selection.train_test_split(*arrays, **options)
     #returns the top max_feat number of features and their weights
+
     df_values_train, df_values_test, df_labels_train, df_labels_test = model_selection.train_test_split(param_values, labels, test_size=0.33)
     train_test = {'train':(df_values_train,df_labels_train), 'test':(df_values_test, df_labels_test)}
 
@@ -77,19 +89,17 @@ def runClusterAnalysis(param_values, labels, num_features, alldf):
 
     
     ###### 3d, plot amd print the predictions of the actual data -- you can do this if # of epochs is low
-    plotPredictions(max_feat, train_test, predict_dict, neurtypes, feature_order)
-    print('best features',feature_order[0:max_feat])
-    return feature_order[0:max_feat]
+    if epoch<=MAXPLOTS:
+        plotPredictions(max_feat, train_test, predict_dict, neurtypes, feature_order,epoch)
+    #print('epoch {} best features {}'.format(epoch,feature_order[0:max_feat]))
+    return feature_order[0:max_feat], max_feat
 
 
 # # Setting Up Data Files for Cluster Analysis
-
-def set_up_df(neurtypes,path_root='./',tile=0.005): #take pattern: ex. "/path/fileroot"
+def set_up_df(neurtypes,path_root, tile=0.005, num_fits=None): #take pattern: ex. "/path/fileroot"
     #set of data files from parameter optimization
     pattern = path_root+'*.npz'
-    #only return the best %tile of samples, or the best num_fits
-
-    num_fits = 10
+    
     #if small=True, use num_fits from each optimization, else, use %tile
     small = True
 
@@ -97,74 +107,88 @@ def set_up_df(neurtypes,path_root='./',tile=0.005): #take pattern: ex. "/path/fi
     fnames = glob.glob(pattern)
     group_names = {key:[f for f in fnames if key in f] for key in neurtypes}
     
-    print(fnames,'found by searching for', pattern)
-    print(group_names)
+    if len(fnames)==0:
+        print('no files found by searching for', pattern)
     
     ##### process all examples of each type, combine into dict of data frames and then one dataframe
     df_list = {}
-    num_good_samples = {}
+    df_list_of_lists = {} 
     for neur in neurtypes:
-        df_list[neur], num_good_samples[neur] = au.combined_df(group_names[neur], tile, neur)
+        df_list[neur], df_list_of_lists[neur] = au.combined_df(group_names[neur], tile, neur)
         #df_list[neur] is a DATAFRAME
-        #num_good_samples[neur] is a LIST OF DATAFRAMES (1 dataframe per npz file)
+        #df_list_of_lists[neur] is a LIST OF DATAFRAMES (1 dataframe per npz file)
 
-    #alldf = pd.concat([df for dfset in df_list.values() for df in dfset])  #if df_list[neur] is a list
+    #list containing fit values for every fit for every neuron
     alldf = pd.concat([df for df in df_list.values()])
-    print('Neuron_types: ', pd.unique(alldf['neuron']), 'df shape', alldf.shape)
+    print('all files read. Neuron_types: ', pd.unique(alldf['neuron']), 'df shape', alldf.shape,'columns',alldf.columns,'files',pd.unique(alldf['cell']),'\n')
     
     ####create smaller df using just small and same number of good fits from each neuron
-    min_samples = np.min([n.shape[0] for vals in num_good_samples.values() for n in vals])
-    num_samples = 100#min(min_samples, num_fits)
-    smalldf_list = {}
+    min_samples = np.min([n.shape[0] for vals in df_list_of_lists.values() for n in vals])
+    if num_fits:
+        num_samples=min(min_samples, num_fits)
+    else:
+        num_samples=min_samples
+    smalldf_list = {neur:[] for neur in neurtypes}
+    print(len(df_list_of_lists['Npas']))
     for neur in neurtypes:
-        smalldf_list[neur] = df_list[neur][-num_samples:]       #[df[-num_samples:] for df in df_list[neur]]
-    if small:
-        alldf = pd.concat(df for df in smalldf_list.values())   #[df for dfset in smalldf_list.values() for df in dfset])
-        print('SMALLER SET OF SAMPLES: Neuron_types: ', pd.unique(alldf['neuron']), 'df shape', alldf.shape)
+        for i in range(len(df_list_of_lists[neur])):
+            smalldf_list[neur].append(df_list_of_lists[neur][i][-num_samples:])
+    print('*********** number of cells in smalldf_list: ', [len(smalldf_list[n]) for n in neurtypes])
+    
+    if num_fits:
+        alldf=pd.concat([df for dfset  in smalldf_list.values() for df in dfset])
+        
+    print('SMALLER SET OF SAMPLES: Neuron_types: ', pd.unique(alldf['neuron']), 'df shape', alldf.shape,'files',pd.unique(alldf['cell']))
 
     #exclude entire row (observation) if Nan is found
-    print(alldf)
-    
     alldf = alldf.dropna(axis=1)
     
-    print("DROP ALL NA")
-    print(alldf)
-    #identify fitness columns and number of features
+    #identify fitness columns and number of features (parameter values)
     fitnesses = [col for col in alldf.columns if 'fitness' in col]
     chan_params = [col for col in alldf.columns if 'Chan' in col]
     num_features = len(alldf.columns)-len(fitnesses)
 
-    print('new shape', alldf.shape,'fitnesses:', len(fitnesses), 'params',num_features, "incorrect number because this does not include model or neuron columns")
+    print('new shape', alldf.shape,'fitnesses:', len(fitnesses), 'params',num_features)
 
     #create dataframe with the 'predictor' parameters - conductance and channel kinetics
-    #exclude columns that containing neuron identifier or fitness values
-    exclude_columns = fitnesses + ['neuron','neurtype','junction_potential', "model", "cell"] #total? ['neuron','neurtype','junction_potential']
+    #exclude columns that containing neuron identifier or fitness values, include the total fitness
+    exclude_columns = fitnesses + ['neuron','neurtype','junction_potential', "model", "cell", 'total'] #total? ['neuron','neurtype','junction_potential']
     param_columns = [column for column in list(alldf.columns) if column not in exclude_columns]
-
     param_values = alldf[param_columns]
-    #this is the target values (class labels) of the training data
-    labels = alldf['neurtype']
+
+    #labels contains the target values (class labels) of the training data
+    labels = alldf['neuron']
     
     return (param_values, labels, num_features, alldf) 
 
 
+############ MAIN ############# 
+#### parameters to control analysis.  
+epochs = 10#00  ##100 or 1000, 10 for testing
+neurtypes = ['Npas','proto'] #which neurtypes you are identifying between
+path_root='opt_output/temeles_gpopt_output/' #directory and root file name of set of files
+tile=0.005 #what percentage of best fit neurons do you want to use
+num_fits=10 #how many of each fit for classification of just a few of best fit neurons
+#Set to zero to suppress plotting graphs
+MAXPLOTS=3
+#### end of parameters
 
-###### MAIN #######
-#parameters to control analysis.  use epochs ~ 10 for debugging
-epochs = 1#000
-neurtypes = ['arky','proto']  #which neurtypes you are identifying between
-path_root='gp_opt/pfc*/' #directory and root file name of set of files
-tile=0.005 #do classification on this fraction of fits, to only use the good fits
-param_values, labels, num_features, alldf = set_up_df(neurtypes,path_root,tile)
+### read in all npz files, select top tile% of model fits, put into pandas dataframe
+param_values, labels, num_features, alldf = set_up_df(neurtypes,path_root,tile, num_fits)
 
-### Calling Cluster Analysis Functions (Adjust Epochs)
-# Top 8 features & their weights in each epoch are cumulatively summed in collectionBestFeatures = {feature: totalWeightOverAllEpochs}                                                                                                               
+### Do Cluster Analysis 
+# Top 8 features & their weights in each epoch are cumulatively summed in collectionBestFeatures = {feature: totalWeightOverAllEpochs}                                                                                                  
 # Top 1 feature in each epoch is stored in collectionTopFeatures = {feature: numberOfTimesAsTopFeatureOverAllEpochs}
+
 collectionBestFeatures = {}
 collectionTopFeatures = {}
 for epoch in range(0, epochs):
-    features = runClusterAnalysis(param_values, labels, num_features, alldf)
-    for feat, weight in features:
+    features, max_feat = runClusterAnalysis(param_values, labels, num_features, alldf,epoch,MAXPLOTS)
+    print()
+    #pass in parameter to control plotting
+    print('##### BEST FEATURES for EPOCH '+str(epoch)+' #######')
+    for i,(feat, weight) in enumerate(features):
+        print(i,feat,weight) #monitor progress 
         if feat not in collectionBestFeatures:          # How is the weight scaled? caution
             collectionBestFeatures[feat] = weight
         else:
@@ -176,49 +200,26 @@ for epoch in range(0, epochs):
     else:
         collectionTopFeatures[f] += 1
 
+#### Plotting BestFeatures (Weieghts) and TopFeatures (Frequency)
+#To run in the background:
+#put in batch file: create rc.bat which has 1 line:
+# python3 randomclassifer.py
+#from unix command line type
+#at -f rc.bat NOW
 
-#### Plotting collectionBestFeatures
+listBestFeatures=sorted(collectionBestFeatures.items(),key=operator.itemgetter(1),reverse=True)
+listTopFeatures=sorted(collectionTopFeatures.items(),key=operator.itemgetter(1),reverse=True)
 
-listBestFeatures = sorted(collectionBestFeatures.items(), key=operator.itemgetter(1), reverse=True)
+if MAXPLOTS:
+    plot_features(listBestFeatures,str(epochs),'Total Weight')
+    plot_features(listTopFeatures,str(epochs),'Total Weight')
 
-objects = [name for name, weight in listBestFeatures] 
-y_pos = np.arange(len(listBestFeatures))
-performance = [weight for name, weight in listBestFeatures]
-f = plt.figure(figsize=(12,8))
+########### Save results for later #############
+#np.save('bestFeatures.txt',arr={'objects':objects,'perf':performance})
+np.savez('Feature', best_features=listBestFeatures, top_features=listTopFeatures)
 
-plt.bar(y_pos, performance, align='center', alpha=0.5)
-plt.xticks(y_pos, objects)
-plt.xticks(rotation=90)
-plt.ylabel('Total Weight over 1000 epochs')
-plt.title('Feature')
-
-plt.show()
-
-#### Plotting collectionTopFeatures
-
-listBestFeatures = sorted(collectionTopFeatures.items(), key=operator.itemgetter(1), reverse=True)
-
-objects = [name for name, weight in listBestFeatures] 
-y_pos = np.arange(len(listBestFeatures))
-performance = [weight for name, weight in listBestFeatures]
-f = plt.figure(figsize=(12,8))
-
-plt.bar(y_pos, performance, align='center', alpha=0.5)
-plt.xticks(y_pos, objects)
-plt.xticks(rotation=90)
-plt.ylabel('Frequency as Top Feature')
-plt.title('Feature')
-
-plt.show()
-
-import collections
-sorted_x = sorted(collectionBestFeatures.items(), key=operator.itemgetter(1), reverse=True)
-print(*sorted_x, sep = "\n") 
-
-
-###### NOTES FROM SOMEBODY
-
-########################### NEXT, need to do cluster analysis when labels are not know and best features are not known ##########
+###### NOTES 
+########################### need to do cluster analysis when labels are not know and best features are not known ##########
 ### e.g. using the hierarchical clustering in SAS, but need a method better than disciminant analysis to select features ###
 # Explains different methods for evaluating clusters:
 #https://joernhees.de/blog/2015/08/26/scipy-hierarchical-clustering-and-dendrogram-tutorial/
