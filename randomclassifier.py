@@ -129,7 +129,7 @@ def set_up_df(neurtypes,path_root, tile=0.005, num_fits=None): #take pattern: ex
     else:
         num_samples=min_samples
     smalldf_list = {neur:[] for neur in neurtypes}
-    print(len(df_list_of_lists['Npas']))
+
     for neur in neurtypes:
         for i in range(len(df_list_of_lists[neur])):
             smalldf_list[neur].append(df_list_of_lists[neur][i][-num_samples:])

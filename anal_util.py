@@ -107,20 +107,12 @@ def combined_df(fnames, tile, neurtype,printstuff=0):
         print('  *** columns in df for file ',i,len(df.columns),df['cell'].iloc[0])
     if printstuff:
         print('columnList',columnList)
-    
-    commonCol = set.intersection(*columnList)
-    commonCol = list(commonCol)
+    commonCol=list(set(x for cols in columnList for x in cols))
     print('number of common columns',len(commonCol))
     
-    '''columnSet = set(df_list[0].columns)
-    for index in range(1, len(df_list)):
-        currSet = set(df_list[index].columns)
-        columnSet = columnSet.intersection(currSet)
-    print(columnSet)
-    columnList = list(columnSet)'''
     for df in df_list:
         df = df[commonCol]
-    #print('after common columns',df.columns,'files',pd.unique(df['cell']))
+    print('after common columns',df.columns,'files',pd.unique(df['cell']))
     
     ## join multiple dataFrames, e.g. join all the proto together    
     alldf=pd.concat(df_list)
