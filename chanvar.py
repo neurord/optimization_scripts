@@ -1,42 +1,58 @@
-#from .sasparams file, print CV - std/mean to use for heterogeneity in network (multiplicative factor)
+ #from .sasparams file, print CV - std/mean to use for heterogeneity in network (multiplicative factor)
 import numpy as np
 import glob
 import sys
+import pandas as pd
+import anal_util as au
 
 #files=[]
 #Enter the path to files
 results_dir=sys.argv[1]
-pattern=results_dir+'*/*.sasparams'
+neurtypes=sys.argv[2].split()
+#syntax: python3 -i opt_scripts/chanvar.py dirname 'proto Npas'
+pattern=results_dir+'*/*.npz'
 files=sorted(glob.glob(pattern))
+group_names={n:[f for f in files if n in f] for n in neurtypes}
+tile=0.005
+num_fits=5
+param_types=['Cond','Chan']
+
+df_list = {}
+df_list_of_lists = {} 
+for neur in neurtypes:
+    df_list[neur], df_list_of_lists[neur] = au.combined_df(group_names[neur], tile, neur,0)
+
+min_samples = np.min([n.shape[0] for vals in df_list_of_lists.values() for n in vals])
+num_samples=min(min_samples, num_fits)
+
+smalldf_list = {neur:[] for neur in neurtypes}
+for neur in neurtypes:
+    for i in range(len(df_list_of_lists[neur])):
+        smalldf_list[neur].append(df_list_of_lists[neur][i][-num_samples:])
+
+alldf=pd.concat([df for dfset  in smalldf_list.values() for df in dfset])
+column_list=[col for par in param_types for col in list(alldf.columns) if col.startswith(par) ]+['RA','CM','RM']
+neuron_pars=alldf.groupby(['neuron','cell'])[column_list].mean()
 
 param_dict={}
-for param_type in ['Cond','Chan']:
-    param_set=[]
-    for fn,fname in enumerate(files):
-        print(param_type,fname)
-        f=open(fname,'r')
-        header=f.readline()
-        items =header.split()
-        param_list=[item.split('=') for item in items if item.startswith(param_type)]
-        param_names = [param[0] for param in param_list]
-        pvals=np.zeros(len(param_list))
-        for i,param in enumerate(param_list):
-            #print(i, param[0], param[1].split('+/-')[0],
-            #      round(float(param[1].split('+/-')[1])/float(param[1].split('+/-')[0]),4))
-            pvals[i]=param[1].split('+/-')[0]
-        param_set.append(pvals)
-    param_dict[param_type]={'values':np.array(param_set),'names':param_names}
-    
-for p in param_dict.values():
-    for i,nm in enumerate(p['names']):
+for col in neuron_pars.columns:
+    mean_dict=neuron_pars.groupby(['neuron'])[col].mean().to_dict()
+    stdvals=list(neuron_pars.groupby(['neuron'])[col].std())
+    param_dict[col]={neur:(m,s) for (neur,m),s in zip(mean_dict.items(),stdvals)}
+    param_dict[col]['all']=(neuron_pars[col].mean(),neuron_pars[col].std())
+
+for par,vals in param_dict.items():
+    for neur,(mn,sd) in vals.items():
         prefix=''
-        if nm.startswith('Chan'):
-            if nm.endswith('vshift') and np.abs(np.mean(p['values'][:,i])) > np.std(p['values'][:,i]):
+        if par.startswith('Chan'):
+            if par.endswith('vshift') and (np.abs(mn) > sd):
                 prefix='***'
-            if nm.endswith('taumul') and np.abs(np.mean(p['values'][:,i])-1.0) > np.std(p['values'][:,i]):
+            if par.endswith('taumul') and (np.abs(mn-1.0) > sd):
                 prefix='***'
-        print('{0} {1} {2} mean: {3:.5} stdev: {4:.5}'.format(prefix,nm,p['values'][:,i],
-                                                              np.mean(p['values'][:,i]),np.std(p['values'][:,i])))
+        print('{0} {1} {2} mean: {3:.5} stdev: {4:.5}'.format(prefix,par,neur,mn,sd))
+    if len(neurtypes)==2:
+        if (vals[neurtypes[0]][0]-vals[neurtypes[1]][0])/np.mean([vals[neurtypes[0]][1],vals[neurtypes[1]][1]])>2:
+            print('### sig diff {}'.format(par))
 
 '''
 #to create moose_nerp parameter file:
@@ -54,20 +70,6 @@ to print parameters of particular fit:
 fitnum=10483
 for p,val in fit1[fitnum].params.items():
    print(p,val)
-
-to display a set of traces from optimization
-a. determine tmp dir name (before exiting the optimization):
-tmpdir=fit1[fitnum].tmpdir.name
-b. 
-import numpy as np
-from matplotlib import pyplot
-
-fnames=glob.glob(tmpdir+'/ivdata*.npy')
-for fname in fnames:
-  ivdata=np.load(fname,'r')
-  tstop=0.7 (obtain from time value in waves)
-  ts=np.linspace(0, tstop,num=len(ivdata),endpoint=False)
-  pyplot.plot(ts,ivdata)
 
 '''
 
