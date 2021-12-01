@@ -8,17 +8,17 @@ import fit_commands as fc
 
 modeltype='ep'
 rootdir=os.getcwd()+'/'
-generations=100
-popsiz=8
+generations=1#00
+popsiz=3
 seed=162938
 #after generations, do 25 more at a time and test for convergence
-test_size=25
+test_size=0#25
 
 ################## neuron /data specific specifications #############
 dataname='032117'
 ntype='ep'
 morph_file='EP_soma.p'
-exp_to_fit=epdata.waves[dataname][[0, 2, 5, 7]]
+exp_to_fit=epdata.alldata[dataname][[0]]#, 2, 5, 7]]
 
 dirname='pchan_'+dataname+'_'+str(seed)
 if not dirname in os.listdir(rootdir):
